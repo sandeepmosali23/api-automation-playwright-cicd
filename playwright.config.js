@@ -1,20 +1,29 @@
-module.exports = {
+const { defineConfig } = require('@playwright/test');
+const environment = process.env.TEST_ENVIRONMENT || 'production';
+const config = require(`./config/environments.json`)[environment];
+
+module.exports = defineConfig({
   testDir: './tests',
-  timeout: 30000,
+  timeout: config.timeout,
+  retries: process.env.CI ? config.retries : 0,
+  
   use: {
-    baseURL: 'https://jsonplaceholder.typicode.com',
-    extraHTTPHeaders: {
-      'Content-Type': 'application/json',
-    },
+    baseURL: config.baseURL,
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
-  reporter: [
-    ['html', { outputFolder: 'test-results' }],
-    ['json', { outputFile: 'test-results.json' }]
-  ],
+
   projects: [
     {
       name: 'API Tests',
-      testMatch: '**/*.spec.js',
+      testMatch: '**/api/**/*.spec.js',
     },
   ],
-};
+
+  reporter: process.env.CI ? [
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['json', { outputFile: 'test-results.json' }],
+    ['github']
+  ] : [['html', { open: 'always' }]],
+});
